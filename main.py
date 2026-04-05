@@ -79,13 +79,70 @@ async def submit(
 async def admin():
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT * FROM entries")
+    c.execute("SELECT * FROM entries ORDER BY id DESC")
     entries = c.fetchall()
     conn.close()
+    
     rows = ""
-    for entry in entries:
-        rows += f"<tr><td>{entry['name']}</td><td>{entry['average_score']}</td></tr>"
-    return HTMLResponse(content=f"<h1>Entries</h1><table border='1'>{rows}</table>")
+    for e in entries:
+        events = []
+        if e['proam']: events.append("Pro-Am")
+        if e['championship']: events.append("Champ")
+        
+        rows += f"""
+        <tr class="border-b hover:bg-gray-50">
+            <td class="p-3 font-medium">{e['name']}</td>
+            <td class="p-3">{e['email']}</td>
+            <td class="p-3">{e['phone']}</td>
+            <td class="p-3 text-center">
+                {'✅' if e['friday_attendance'] else '❌'} / {'✅' if e['saturday_attendance'] else '❌'}
+            </td>
+            <td class="p-3 text-center">{e['lodging']}</td>
+            <td class="p-3 text-sm">{', '.join(events) if events else 'None'}</td>
+            <td class="p-3 text-center">{e['average_score']}</td>
+            <td class="p-3 text-center">
+                {'✅' if e['friday_meal'] else '❌'} / {'✅' if e['saturday_meal'] else '❌'}
+            </td>
+            <td class="p-3 text-sm text-gray-500">{e['dietary'] or '-'}</td>
+            <td class="p-3 text-center font-bold">{e['shirt_size']}</td>
+        </tr>"""
+
+    html = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Admin - Matlock Masters</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-100 p-4">
+        <div class="max-w-6xl mx-auto bg-white p-6 rounded-xl shadow-lg">
+            <h1 class="text-2xl font-bold text-green-800 mb-6">Tournament Entries ({len(entries)})</h1>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead>
+                        <tr class="bg-green-50 text-green-900">
+                            <th class="p-3 text-left">Name</th>
+                            <th class="p-3 text-left">Email</th>
+                            <th class="p-3 text-left">Phone</th>
+                            <th class="p-3 text-center">Fri/Sat</th>
+                            <th class="p-3 text-left">Lodging</th>
+                            <th class="p-3 text-left">Events</th>
+                            <th class="p-3 text-center">Avg</th>
+                            <th class="p-3 text-center">Meals (F/S)</th>
+                            <th class="p-3 text-left">Dietary</th>
+                            <th class="p-3 text-center">Shirt</th>
+                        </tr>
+                    </thead>
+                    <tbody>{rows}</tbody>
+                </table>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
 
 if __name__ == "__main__":
     import uvicorn
