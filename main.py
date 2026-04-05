@@ -2,10 +2,12 @@ from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 import sqlite3
 import os
 
 app = FastAPI()
+templates = Jinja2Templates(directory="templates")
 
 DB_NAME = "golf_entries.db"
 
