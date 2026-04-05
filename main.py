@@ -1,6 +1,7 @@
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse
 import sqlite3
+import os
 
 app = FastAPI()
 DB_NAME = "golf_entries.db"
@@ -35,6 +36,7 @@ INDEX_HTML = """
 <body class="bg-green-50 p-4">
     <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow-lg">
         <h1 class="text-2xl font-bold text-green-800 text-center">Matlock Masters 2026</h1>
+        <p class="text-center text-gray-600 mb-6">Sept 10-11 • 8 Hazel, Matlock</p>
         <form action="/submit" method="POST" class="mt-6 space-y-4">
             <div><label class="block font-bold">Name</label><input type="text" name="name" class="w-full p-3 border rounded" required></div>
             <div><label class="block font-bold">Email</label><input type="email" name="email" class="w-full p-3 border rounded" required></div>
@@ -47,11 +49,11 @@ INDEX_HTML = """
 </html>
 """
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def home():
-    return INDEX_HTML
+    return HTMLResponse(content=INDEX_HTML)
 
-@app.post("/submit", response_class=HTMLResponse)
+@app.post("/submit")
 async def submit(
     name: str = Form(...), email: str = Form(...), phone: str = Form(...),
     average_score: str = Form(...), friday_attendance: str = Form(None),
@@ -71,8 +73,21 @@ async def submit(
                dietary, shirt_size))
     conn.commit()
     conn.close()
-    return "<h1 style='text-align:center; padding-top:50px;'>Thanks for registering, " + name + "!</h1>"
+    return HTMLResponse(content="<h1 style='text-align:center; padding-top:50px;'>Thanks for registering, " + name + "!</h1>")
+
+@app.get("/admin")
+async def admin():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM entries")
+    entries = c.fetchall()
+    conn.close()
+    rows = ""
+    for entry in entries:
+        rows += f"<tr><td>{entry['name']}</td><td>{entry['average_score']}</td></tr>"
+    return HTMLResponse(content=f"<h1>Entries</h1><table border='1'>{rows}</table>")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    port = int(os.environ.get("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)
