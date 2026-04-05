@@ -1,7 +1,6 @@
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse
 import sqlite3
-import os
 
 app = FastAPI()
 DB_NAME = "golf_entries.db"
@@ -24,78 +23,55 @@ def init_db():
 
 init_db()
 
-def read_file(path):
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read()
+INDEX_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matlock Masters 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-green-50 p-4">
+    <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow-lg">
+        <h1 class="text-2xl font-bold text-green-800 text-center">Matlock Masters 2026</h1>
+        <form action="/submit" method="POST" class="mt-6 space-y-4">
+            <div><label class="block font-bold">Name</label><input type="text" name="name" class="w-full p-3 border rounded" required></div>
+            <div><label class="block font-bold">Email</label><input type="email" name="email" class="w-full p-3 border rounded" required></div>
+            <div><label class="block font-bold">Phone</label><input type="tel" name="phone" class="w-full p-3 border rounded" required></div>
+            <div><label class="block font-bold">Avg Score</label><input type="number" name="average_score" class="w-full p-3 border rounded" required></div>
+            <button type="submit" class="w-full bg-green-700 text-white p-4 rounded font-bold text-lg">Register</button>
+        </form>
+    </div>
+</body>
+</html>
+"""
 
 @app.get("/", response_class=HTMLResponse)
-async def get_form():
-    content = read_file("templates/index.html")
-    return content
+async def home():
+    return INDEX_HTML
 
 @app.post("/submit", response_class=HTMLResponse)
-async def submit_form(
-    request: Request,
-    name: str = Form(...),
-    email: str = Form(...),
-    phone: str = Form(...),
-    friday_attendance: str = Form(None),
-    saturday_attendance: str = Form(None),
-    lodging: str = Form(...),
-    proam: str = Form(None),
-    championship: str = Form(None),
-    average_score: str = Form(...),
-    friday_meal: str = Form(None),
-    saturday_meal: str = Form(None),
-    dietary: str = Form(""),
-    shirt_size: str = Form(...)
+async def submit(
+    name: str = Form(...), email: str = Form(...), phone: str = Form(...),
+    average_score: str = Form(...), friday_attendance: str = Form(None),
+    saturday_attendance: str = Form(None), lodging: str = Form("No"),
+    proam: str = Form(None), championship: str = Form(None),
+    friday_meal: str = Form(None), saturday_meal: str = Form(None),
+    dietary: str = Form(""), shirt_size: str = Form("M")
 ):
     conn = get_db()
     c = conn.cursor()
-    c.execute('''INSERT INTO entries 
-                 (name, email, phone, friday_attendance, saturday_attendance, lodging,
-                  proam, championship, average_score, friday_meal, saturday_meal, dietary, shirt_size)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-              (name, email, phone, 1 if friday_attendance else 0, 1 if saturday_attendance else 0,
-               lodging, 1 if proam else 0, 1 if championship else 0, average_score,
-               1 if friday_meal else 0, 1 if saturday_meal else 0, dietary, shirt_size))
+    c.execute('''INSERT INTO entries (name, email, phone, average_score, friday_attendance, 
+                 saturday_attendance, lodging, proam, championship, friday_meal, saturday_meal, dietary, shirt_size)
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+              (name, email, phone, average_score, 1 if friday_attendance else 0,
+               1 if saturday_attendance else 0, lodging, 1 if proam else 0,
+               1 if championship else 0, 1 if friday_meal else 0, 1 if saturday_meal else 0,
+               dietary, shirt_size))
     conn.commit()
     conn.close()
-    
-    content = read_file("templates/index.html")
-    # Simple string replacement to show the success message
-    content = content.replace('{% if message %}', '<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">Thanks for registering! See you in Matlock.</div>')
-    content = content.replace('{% endif %}', '')
-    return content
-
-@app.get("/admin", response_class=HTMLResponse)
-async def admin_panel():
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM entries")
-    entries = c.fetchall()
-    conn.close()
-    
-    rows = ""
-    for entry in entries:
-        events = []
-        if entry['proam']: events.append("Pro-Am")
-        if entry['championship']: events.append("Championship")
-        rows += f"""
-        <tr class="border-b">
-            <td class="p-2">{entry['name']}</td>
-            <td class="p-2">{", ".join(events)}</td>
-            <td class="p-2">{entry['lodging']}</td>
-            <td class="p-2">{entry['average_score']}</td>
-        </tr>
-        """
-    
-    content = read_file("templates/admin.html")
-    content = content.replace('{% for entry in entries %}', rows)
-    content = content.replace('{% endfor %}', '')
-    # Replace the jinja variables in the row template with the actual values from the loop
-    # (Since we are pre-rendering, we can just replace the whole loop block)
-    return content
+    return "<h1 style='text-align:center; padding-top:50px;'>Thanks for registering, " + name + "!</h1>"
 
 if __name__ == "__main__":
     import uvicorn
