@@ -66,14 +66,21 @@ init_db()
 
 # --- AI Broadcaster Logic ---
 def generate_commentary(foursome_name, hole, score):
-    # In a real version, this would call an LLM API. For now, we use fun templates.
-    par = 4 # Assuming avg par for simplicity
+    par = 4 
     diff = score - par
-    if diff <= -2: return f"🦅 **UNBELIEVABLE!** {foursome_name} just carded a {score} on Hole {hole}! Absolute magic!"
-    if diff == -1: return f"🔥 **BIRDIE!** {foursome_name} is heating up with a {score} on Hole {hole}."
-    if diff == 0: return f"⛳ **PAR.** Solid golf from {foursome_name} on Hole {hole}."
-    if diff == 1: return f"⚠️ **BOGEY.** A rare slip-up for {foursome_name} on Hole {hole}."
-    return f"😱 **DOUBLE BOGEY+!** Trouble for {foursome_name} on Hole {hole} with a {score}."
+    gifs = {
+        "eagle": "https://media.giphy.com/media/l0MYt5jPR6uXN3QaI/giphy.gif", # Win/Success
+        "birdie": "https://media.giphy.com/media/3o6fJdY47K6wU8Y88E/giphy.gif", # High Five
+        "par": "https://media.giphy.com/media/l0HlHJGHe3yAMhdQY/giphy.gif", # Thumbs up
+        "bogey": "https://media.giphy.com/media/3o7TKs600K0XN3QaI/giphy.gif", # Oh no
+        "double": "https://media.giphy.com/media/3o7qDSOvfaIL9d3Msw/giphy.gif"  # Facepalm
+    }
+    
+    if diff <= -2: return f"🦅 **UNBELIEVABLE!** {foursome_name} carded a {score} on Hole {hole}! <img src='{gifs['eagle']}' width='100'>"
+    if diff == -1: return f"🔥 **BIRDIE!** {foursome_name} is heating up! <img src='{gifs['birdie']}' width='100'>"
+    if diff == 0: return f"⛳ **PAR.** Steady as she goes. <img src='{gifs['par']}' width='100'>"
+    if diff == 1: return f"⚠️ **BOGEY.** A little trouble on Hole {hole}. <img src='{gifs['bogey']}' width='100'>"
+    return f"😱 **OUCH!** A {score} on Hole {hole}. <img src='{gifs['double']}' width='100'>"
 
 @app.get("/")
 async def home():
